@@ -70,12 +70,14 @@ export default class PagerScroll<T: *> extends React.Component<
   _idleCallback: any;
   _isIdle: boolean = true;
   _isInitial: boolean = true;
+  _endOffset: number = 0; // DD
 
   _setInitialPage = () => {
     if (this.props.layout.width) {
       this._isInitial = true;
+      this._endOffset = this.props.navigationState.index * this.props.layout.width;
       this._scrollTo(
-        this.props.navigationState.index * this.props.layout.width,
+        this._endOffset,
         false
       );
     }
@@ -87,6 +89,14 @@ export default class PagerScroll<T: *> extends React.Component<
 
   _scrollTo = (x: number, animated = true) => {
     if (this._isIdle && this._scrollView) {
+      // DD
+      const { width } = this.props.layout;
+      const delta = Math.abs((x - this._endOffset) / width);
+      if (delta > 1) {
+        const offset = x > this._endOffset ? x - width : x + width;
+        this._scrollView.scrollTo({ x: offset, animated: false });
+      }
+      // End of DD
       this._scrollView.scrollTo({
         x,
         animated: animated && this.props.animationEnabled !== false,
@@ -102,6 +112,9 @@ export default class PagerScroll<T: *> extends React.Component<
     const nextRoute = this.props.navigationState.routes[nextIndex];
 
     if (this.props.canJumpToTab({ route: nextRoute })) {
+      // DD
+      this._endOffset = e.nativeEvent.contentOffset.x;
+      // End of DD
       this.props.jumpTo(nextRoute.key);
       this.props.onAnimationEnd && this.props.onAnimationEnd();
     } else {
@@ -179,7 +192,7 @@ export default class PagerScroll<T: *> extends React.Component<
               }
               style={
                 layout.width
-                  ? { width: layout.width, overflow: 'hidden' }
+                  ? { width: layout.width } //, overflow: 'hidden'
                   : focused
                     ? styles.page
                     : null
